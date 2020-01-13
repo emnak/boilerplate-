@@ -1,0 +1,154 @@
+version: 2
+jobs:
+  install-3.6:
+    working_directory: ~/project
+    machine:
+      image: ubuntu-1604:201903-01
+    steps:
+      - run:
+          name: Set python 3.6.5
+          command: |
+            pyenv global 3.6.5
+            python -m pip install --upgrade pip setuptools wheel
+      - checkout
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            - machine-3.6-{{ checksum "dev_requirements.txt" }}-{{ checksum "polyaxon_requirements.txt" }}
+      - run:
+          name: Install dependencies
+          command: |
+            python -m venv venv
+            . venv/bin/activate
+            pip install --upgrade pip
+            pip install git+ssh://git@github.com/sicara/pipeline.git@v0.11.2
+            pip install -r dev_requirements.txt
+      - save_cache:
+          paths:
+            - ./venv
+          key: machine-3.6-{{ checksum "dev_requirements.txt" }}-{{ checksum "polyaxon_requirements.txt" }}
+  tests-3.6:
+    working_directory: ~/project
+    machine:
+      image: ubuntu-1604:201903-01
+    steps:
+      - run:
+          name: Set python 3.6.5
+          command: |
+            pyenv global 3.6.5
+            python -m pip install --upgrade pip setuptools wheel
+      - checkout
+      - restore_cache:
+          key: machine-3.6-{{ checksum "dev_requirements.txt" }}-{{ checksum "polyaxon_requirements.txt" }}
+      - run:
+          name: run pytest
+          command: |
+            . venv/bin/activate
+            make test
+  lint-3.6:
+    working_directory: ~/project
+    machine:
+      image: ubuntu-1604:201903-01
+    steps:
+      - run:
+          name: Set python 3.6.5
+          command: |
+            pyenv global 3.6.5
+            python -m pip install --upgrade pip setuptools wheel
+      - checkout
+      - restore_cache:
+          key: machine-3.6-{{ checksum "dev_requirements.txt" }}-{{ checksum "polyaxon_requirements.txt" }}
+      - run:
+          name: run pylint
+          command: |
+            . venv/bin/activate
+            make lint
+      - store_artifacts:
+          path: lint-project-reports
+          destination: lint-project-reports
+
+  install-3.7:
+    working_directory: ~/project
+    machine:
+      image: ubuntu-1604:201903-01
+    steps:
+      - run:
+          name: Set python 3.7.0
+          command: |
+            pyenv global 3.7.0
+            python -m pip install --upgrade pip setuptools wheel
+      - checkout
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            - machine-3.7-{{ checksum "dev_requirements.txt" }}-{{ checksum "polyaxon_requirements.txt" }}
+      - run:
+          name: Install dependencies
+          command: |
+            python -m venv venv
+            . venv/bin/activate
+            pip install --upgrade pip
+            pip install git+ssh://git@github.com/sicara/pipeline.git@v0.11.2
+            pip install -r dev_requirements.txt
+      - save_cache:
+          paths:
+            - ./venv
+          key: machine-3.7-{{ checksum "dev_requirements.txt" }}-{{ checksum "polyaxon_requirements.txt" }}
+  tests-3.7:
+    working_directory: ~/project
+    machine:
+      image: ubuntu-1604:201903-01
+    steps:
+      - run:
+          name: Set python 3.7.0
+          command: |
+            pyenv global 3.7.0
+            python -m pip install --upgrade pip setuptools wheel
+      - checkout
+      - restore_cache:
+          key: machine-3.7-{{ checksum "dev_requirements.txt" }}-{{ checksum "polyaxon_requirements.txt" }}
+      - run:
+          name: run pytest
+          command: |
+            . venv/bin/activate
+            make test
+  lint-3.7:
+    working_directory: ~/project
+    machine:
+      image: ubuntu-1604:201903-01
+    steps:
+      - run:
+          name: Set python 3.7.0
+          command: |
+            pyenv global 3.7.0
+            python -m pip install --upgrade pip setuptools wheel
+      - checkout
+      - restore_cache:
+          key: machine-3.7-{{ checksum "dev_requirements.txt" }}-{{ checksum "polyaxon_requirements.txt" }}
+      - run:
+          name: run pylint
+          command: |
+            . venv/bin/activate
+            make lint
+      - store_artifacts:
+          path: lint-project-reports
+          destination: lint-project-reports
+
+workflows:
+  version: 2
+  main:
+    jobs:
+      - install-3.6
+      - tests-3.6:
+          requires:
+            - install-3.6
+      - lint-3.6:
+          requires:
+            - install-3.6
+      - install-3.7
+      - tests-3.7:
+          requires:
+            - install-3.7
+      - lint-3.7:
+          requires:
+            - install-3.7

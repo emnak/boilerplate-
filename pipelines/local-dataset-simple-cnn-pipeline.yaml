@@ -1,0 +1,74 @@
+---
+variables:
+  output_folder: output
+  class_mode: binary
+  target_size: [256, 256]
+  number_of_epochs: 50
+  batch_size: 32
+  horizontal_flip: true
+
+init:
+  flows:
+    set_gpu_device:
+      steps:
+        - name: SetGPUConfig
+
+    training:
+      steps:
+        - name: ClassifierTraining
+          init:
+            model:
+              name: simple_cnn
+              parameters:
+                class_mode: %(class_mode)s
+            loss: %(class_mode)s_crossentropy
+            optimizer:
+              name: Adadelta
+              init:
+                lr: 0.001
+                rho: 0.95
+                epsilon: null
+                decay: 0.0
+            train_generator:
+              name: LocalDatasetGenerator
+              init:
+                <<: &generator_parameters
+                  dataset_path: data/samples
+                  validation_split: 0.5
+                  batch_size: %(batch_size)s
+                  target_size: %(target_size)s
+                  shuffle: True
+                  class_mode: %(class_mode)s
+                subset: training
+                data_augmentation:
+                  horizontal_flip: %(horizontal_flip)s
+            val_generator:
+              name: LocalDatasetGenerator
+              init:
+                <<: *generator_parameters
+                subset: validation
+            epochs: %(number_of_epochs)s
+            output_folder: %(output_folder)s
+
+    metrics:
+      steps:
+        - name: ClassifierPrediction
+          init:
+            model_path: %(output_folder)s/model_with_best_weights.h5
+            ordered_labels_path: %(output_folder)s/ordered_labels.yaml
+            test_generator:
+              name: LocalDatasetGenerator
+              init:
+                dataset_path: data/samples
+                subset: test
+                batch_size: %(batch_size)s
+                target_size: %(target_size)s
+            class_mode: %(class_mode)s
+        - name: ConfusionMatrix
+          init:
+            image_output_path: %(output_folder)s/confusion_matrix.png
+            ordered_labels_path: %(output_folder)s/ordered_labels.yaml
+
+run:
+  output_folder: %(output_folder)s
+  output_folder_permissions: 02775

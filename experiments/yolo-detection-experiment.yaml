@@ -1,0 +1,26 @@
+---
+version: 1
+
+kind: experiment
+
+environment:
+  resources:
+    gpu:
+      requests: 1
+      limits: 1
+
+build:
+  image: sicara/leto-stack:tf2-0-0-gpu-pipeline0-12-0-chani0-0-11-ibad99469152869815722ff6d39bcf707de9a52d81a4
+  build_steps:
+    - pip install --no-cache-dir -r polyaxon_requirements.txt
+  env_vars:
+    - ['LC_ALL', 'C.UTF-8']
+    - ['PYTHONPATH', '$PYTHONPATH:/code']
+
+run:
+  cmd:
+    # Allow to access the mounted output_folder as if it was in ./output
+    - ln -s $POLYAXON_RUN_OUTPUTS_PATH ./output
+    - ln -s /data ./data
+    # Run the pipeline defined in the pipelines folder
+    - run-pipeline pipelines/yolo-detection-pipeline.yaml

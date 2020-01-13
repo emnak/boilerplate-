@@ -1,0 +1,5 @@
+image_name,label,x1,y1,x2,y2
+img4.jpg,TRAIN_LABEL_3,103,87,282,274
+img4.jpg,TRAIN_LABEL_3,67,59,303,291
+img1.jpg,TRAIN_LABEL_3,62,55,294,293
+img1.jpg,TRAIN_LABEL_0,75,58,294,290

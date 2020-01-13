@@ -1,0 +1,87 @@
+---
+
+variables:
+  number_epochs_only_3_head_layers: &number_epochs_only_3_head_layers 1
+  number_epochs_all_but_darknet_53: &number_epochs_all_but_darknet_53 1
+  number_epochs_all_network: &number_epochs_all_network 1
+  output_folder: &output_folder output
+  path_to_train_csv: &path_to_train_csv data/object_detection/csv/list_train_annotations.csv
+  path_to_val_csv: &path_to_val_csv data/object_detection/csv/list_val_annotations.csv
+  path_to_input_csv: &path_to_input_csv data/object_detection/csv/list_images.csv
+
+init:
+  inputs:
+  - path_to_train_csv
+  - path_to_val_csv
+  - path_to_csv
+  flows:
+    init_tensorflow_session:
+      steps:
+      - name: SetGPUConfig
+
+    train_set:
+      inputs: path_to_train_csv
+      steps:
+      - name: CsvParser
+
+    val_set:
+      inputs: path_to_val_csv
+      steps:
+      - name: CsvParser
+
+    training_flow:
+      inputs:
+        - train_set
+        - val_set
+      steps:
+      - name: TrainYoloDetector
+        init:
+          weights_path:
+          anchors_path: data/object_detection/anchors/anchors.txt
+          classes_path: data/object_detection/classes/classes_path.csv
+          model_image_size: [416,416]
+          batch_size: 2
+          number_epochs_only_3_head_layers: *number_epochs_only_3_head_layers # (int): number of epochs for training only the 3 last layers
+          number_epochs_all_but_darknet_53: *number_epochs_all_but_darknet_53 # (int): number of epochs for training the 3 last layers and the darknet 53 body
+          number_epochs_all_network: *number_epochs_all_network # (int): number of epochs for training all the network
+          output_folder: %(output_folder)s/
+          input_seed: 1000 # (int): positive integer controlling the randomness of the training. If none is inputted, this seed will be randomly generated and dumped in the folder `"output_folder"/seeds`
+          images_folder: data/object_detection/images # (str): path to the folder containing the images
+          optimizer:
+            name: Adam
+            init:
+              lr: 0.0001
+          callback_for_last_training:
+            name: ReduceLROnPlateau
+            init:
+              monitor: val_loss
+          best_weights_filename: '' # (str, default='yolo_best_weights.h5'): name of the HDF5 file to save the weights to after training.
+
+    test_set:
+      inputs: path_to_csv
+      steps:
+      - name: CsvParser
+
+    prediction_flow:
+      inputs:
+        - test_set
+        - training_flow  # to ensure dependence between training and detection, so that the steps are executed in the right order
+      steps:
+      - name: PredictYoloDetector
+        init:
+          weights_path: %(output_folder)s/yolo_outputs_only-weights.h5
+          anchors_path: data/object_detection/anchors/anchors.txt
+          classes_path: data/object_detection/classes/classes_path.csv
+          detection_threshold: 0.0 #  (float): confidence threshold under which the yolo predictions are dropped
+          iou: 0.8 # (float): threshold defining if predictes bounding boxes should be merged or not, based on the non-max suppresion algorithm. When `iou=0`, none box are merged.
+          model_image_size: [416,416] # (list): a list of int representing the shape of the input image. *e.g.* [416,416]
+          images_folder: data/object_detection/images # (str): path to the folder containing the images
+          should_load_weights_on_init: False  # (bool), whether or not to load the model weights during init
+
+run:
+  inputs:
+    path_to_train_csv: *path_to_train_csv
+    path_to_val_csv: *path_to_val_csv
+    path_to_csv: *path_to_input_csv
+  output_folder: *output_folder
+  output_folder_permissions: 02775

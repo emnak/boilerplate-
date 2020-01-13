@@ -1,0 +1,2 @@
+[run]
+omit = src/utils/init_keras_tf_rtx.py

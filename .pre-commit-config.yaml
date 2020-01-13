@@ -1,0 +1,14 @@
+repos:
+- repo: local
+  hooks:
+  - id: pylint
+    name: pylint
+    entry: python -m pylint.__main__
+    language: system
+    types: [python]
+- repo: https://github.com/psf/black
+  rev: stable
+  hooks:
+  - id: black
+    name: black
+    language_version: python3.6

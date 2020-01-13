@@ -1,0 +1,65 @@
+---
+variables:
+  output_folder: output
+  fashion_mnist_ordered_labels_path: &fashion_mnist_ordered_labels_path pipelines/fashion_mnist_ordered_labels.yaml
+  number_of_epochs: 50
+
+init:
+  flows:
+    set_gpu_device:
+      steps:
+        - name: SetGPUConfig
+
+    training:
+      steps:
+        - name: ClassifierTraining
+          init:
+            model:
+              name: simple_cnn
+            loss: categorical_crossentropy
+            optimizer:
+              name: Adadelta
+              init:
+                lr: 0.001
+                rho: 0.95
+                epsilon: null
+                decay: 0.0
+            train_generator:
+              name: KerasDatasetGenerator
+              init:
+                dataset_name: fashion_mnist
+                subset: training
+                validation_split: 0.2
+                batch_size: 32
+                data_augmentation:
+                  horizontal_flip: true
+            val_generator:
+              name: KerasDatasetGenerator
+              init:
+                dataset_name: fashion_mnist
+                subset: validation
+                validation_split: 0.2
+                batch_size: 32
+            epochs: %(number_of_epochs)s
+            output_folder: %(output_folder)s
+
+    metrics:
+      steps:
+        - name: ClassifierPrediction
+          init:
+            model_path: %(output_folder)s/model_with_best_weights.h5
+            test_generator:
+              name: KerasDatasetGenerator
+              init:
+                dataset_name: fashion_mnist
+                subset: test
+                batch_size: 32
+            ordered_labels_path: *fashion_mnist_ordered_labels_path
+        - name: ConfusionMatrix
+          init:
+            ordered_labels_path: *fashion_mnist_ordered_labels_path
+            image_output_path: %(output_folder)s/confusion_matrix.png
+
+run:
+  output_folder: %(output_folder)s
+  output_folder_permissions: 02775
